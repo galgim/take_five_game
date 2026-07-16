@@ -51,55 +51,25 @@ const Map<int, FishTier> fishTiers = {
 
 FishTier tierFor(int bulls) => fishTiers[bulls] ?? fishTiers[1]!;
 
-/// A minimalist outlined fish glyph, similar to the reference card art.
-class FishIconPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-
-  const FishIconPainter({required this.color, this.strokeWidth = 1.2});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
-
-    final w = size.width;
-    final h = size.height;
-
-    final body = Path()..moveTo(0, h * 0.5);
-    body.quadraticBezierTo(w * 0.38, 0, w * 0.72, h * 0.5);
-    body.quadraticBezierTo(w * 0.38, h, 0, h * 0.5);
-    canvas.drawPath(body, paint);
-
-    final tail = Path()
-      ..moveTo(w * 0.7, h * 0.5)
-      ..lineTo(w, h * 0.12)
-      ..moveTo(w * 0.7, h * 0.5)
-      ..lineTo(w, h * 0.88);
-    canvas.drawPath(tail, paint);
-  }
-
-  @override
-  bool shouldRepaint(FishIconPainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth;
-}
-
 /// Small inline fish glyph for use next to point totals (replaces the old ▲).
+/// Uses the fish-icon.png asset (a solid silhouette), tinted per tier.
 class FishGlyph extends StatelessWidget {
   final double size;
   final Color color;
 
   const FishGlyph({super.key, this.size = 11, required this.color});
 
+  static const double _aspect = 577 / 539;
+  static double widthFor(double size) => size * _aspect;
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size * 1.4,
+    return Image.asset(
+      'assets/fish-icon.png',
+      width: size * _aspect,
       height: size,
-      child: CustomPaint(painter: FishIconPainter(color: color, strokeWidth: size * 0.14)),
+      color: color,
+      colorBlendMode: BlendMode.srcIn,
     );
   }
 }
@@ -137,8 +107,17 @@ class FishCardBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tier = tierFor(bulls);
-    final fishSize = width * 0.15;
-    final stripHeight = height * (tier.fishCount > 3 ? 0.34 : 0.2);
+    final fishSize = switch (tier.fishCount) {
+      <= 3 => width * 0.16,
+      5 => width * 0.115,
+      _ => width * 0.095,
+    };
+    final stripHeightFraction = switch (tier.fishCount) {
+      <= 3 => 0.2,
+      5 => 0.36,
+      _ => 0.4,
+    };
+    final stripHeight = height * stripHeightFraction;
     final stripTop = height - stripHeight;
 
     return ClipRRect(
@@ -151,7 +130,7 @@ class FishCardBackground extends StatelessWidget {
             Positioned.fill(child: Container(color: tier.backgroundColor)),
             for (final pos in _fishPositions(tier.fishCount, width, stripTop, stripHeight))
               Positioned(
-                left: pos.dx - fishSize * 0.7,
+                left: pos.dx - FishGlyph.widthFor(fishSize) / 2,
                 top: pos.dy - fishSize * 0.5,
                 child: FishGlyph(size: fishSize, color: tier.fishColor),
               ),
