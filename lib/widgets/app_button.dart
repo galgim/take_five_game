@@ -44,6 +44,9 @@ class AppButton extends StatelessWidget {
         child: Center(
           child: Text(
             label,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: fontSize,
               fontWeight: FontWeight.w800,

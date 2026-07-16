@@ -4,6 +4,7 @@ import '../models/take_card.dart';
 import '../models/game_row.dart';
 import '../models/take_player.dart';
 import '../widgets/app_button.dart';
+import '../widgets/fish_card_design.dart';
 import 'menu_screen.dart';
 
 class GameScreen extends StatefulWidget {
@@ -91,6 +92,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final isSelecting = !_gs.revealPhase && !_gs.choosingRow && !_gs.gameOver;
+    final showSelections = _gs.revealPhase || _gs.choosingRow;
 
     return Scaffold(
       backgroundColor: const Color(0xFF1B4332),
@@ -100,80 +102,63 @@ class _GameScreenState extends State<GameScreen> {
             child: CustomPaint(painter: _CrosshatchPainter(const Color(0xFF2D6A4F))),
           ),
           SafeArea(
-            child: Stack(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _TopBar(
-                      players: _gs.players,
-                      onMenu: _openMenu,
-                    ),
-                    if (_gs.revealPhase || _gs.choosingRow)
-                      _SelectionsRow(
-                        players: _gs.players,
-                        currentCard: _gs.lastPlacedCard,
-                        currentPlayer: _gs.lastPlacingPlayer,
-                      ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: _TableArea(
-                          rows: _gs.rows,
-                          lastAffectedRow: _gs.lastAffectedRow,
-                          lastWasTake: _gs.lastWasTake,
-                          choosingRow: _gs.choosingRow,
-                          onPickRow: _gs.pickRow,
-                        ),
-                      ),
-                    ),
-                    _PlayerHand(
-                      hand: _gs.human.hand,
-                      selectedCard: _gs.selectedCard,
-                      interactive: isSelecting,
-                      onSelectCard: _gs.selectCard,
-                    ),
-                    if (isSelecting)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                        child: AppButton(
-                          label: _gs.selectedCard == null ? 'SELECT A CARD' : 'CONFIRM',
-                          onTap: _gs.selectedCard != null ? _gs.confirmSelection : null,
-                          backgroundColor: const Color(0xFFFFC107),
-                          textColor: Colors.black,
-                          borderColor: const Color(0xFFE65100),
-                          verticalPadding: 14,
-                          fontSize: 15,
-                        ),
-                      )
-                    else
-                      const SizedBox(height: 12),
-                  ],
+                _PlayerSidebar(
+                  players: _gs.players,
+                  currentPlayer: _gs.lastPlacingPlayer,
+                  showSelections: showSelections,
+                  onMenu: _openMenu,
                 ),
-                Positioned(
-                  top: 4,
-                  right: 8,
-                  child: _GearButton(onTap: _openMenu),
-                ),
-                if (_gs.gameOver)
-                  _GameOverOverlay(
-                    players: _gs.sortedByBulls,
-                    humanName: _gs.human.name,
-                    onPlayAgain: () => _gs.reset(widget.playerCount, widget.playerName),
-                    onMenu: () {
-                      if (Navigator.canPop(context)) {
-                        Navigator.pop(context);
-                      } else {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => const MenuScreen()),
-                        );
-                      }
-                    },
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(6, 6, 10, 6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: _TableGrid(
+                            rows: _gs.rows,
+                            lastAffectedRow: _gs.lastAffectedRow,
+                            lastWasTake: _gs.lastWasTake,
+                            choosingRow: _gs.choosingRow,
+                            onPickRow: _gs.pickRow,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        _BottomBar(
+                          hand: _gs.human.hand,
+                          selectedCard: _gs.selectedCard,
+                          interactive: isSelecting,
+                          onSelectCard: _gs.selectCard,
+                          isSelecting: isSelecting,
+                          hasSelectedCard: _gs.selectedCard != null,
+                          onConfirm: _gs.selectedCard != null ? _gs.confirmSelection : null,
+                        ),
+                      ],
+                    ),
                   ),
+                ),
               ],
             ),
           ),
+          if (_gs.gameOver)
+            _GameOverOverlay(
+              players: _gs.sortedByBulls,
+              humanName: _gs.human.name,
+              onPlayAgain: () => _gs.reset(widget.playerCount, widget.playerName),
+              onMenu: () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MenuScreen()),
+                  );
+                }
+              },
+            ),
         ],
       ),
     );
@@ -181,134 +166,144 @@ class _GameScreenState extends State<GameScreen> {
 }
 
 // ═══════════════════════════════════════════
-// TOP BAR
+// PLAYER SIDEBAR (scores + selected cards)
 // ═══════════════════════════════════════════
 
-class _TopBar extends StatelessWidget {
+class _PlayerSidebar extends StatelessWidget {
   final List<TakePlayer> players;
+  final TakePlayer? currentPlayer;
+  final bool showSelections;
   final VoidCallback onMenu;
 
-  const _TopBar({required this.players, required this.onMenu});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 48, 4),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: players.map((p) => _PlayerScore(player: p)).toList(),
-        ),
-      ),
-    );
-  }
-}
-
-class _PlayerScore extends StatelessWidget {
-  final TakePlayer player;
-
-  const _PlayerScore({required this.player});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: player.isHuman
-            ? const Color(0xFFFFC107).withValues(alpha: 0.25)
-            : Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            player.name,
-            style: TextStyle(
-              color: player.isHuman ? const Color(0xFFFFC107) : Colors.white70,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '${player.totalBulls}▲',
-            style: TextStyle(
-              color: player.isHuman ? const Color(0xFFFFC107) : Colors.white54,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════
-// SELECTIONS ROW (shown during reveal/resolve)
-// ═══════════════════════════════════════════
-
-class _SelectionsRow extends StatelessWidget {
-  final List<TakePlayer> players;
-  final TakeCard? currentCard;
-  final TakePlayer? currentPlayer;
-
-  const _SelectionsRow({
+  const _PlayerSidebar({
     required this.players,
-    required this.currentCard,
     required this.currentPlayer,
+    required this.showSelections,
+    required this.onMenu,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 80,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      width: 132,
+      padding: const EdgeInsets.fromLTRB(8, 6, 6, 6),
+      child: Column(
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _GearButton(onTap: onMenu),
+          ),
+          const SizedBox(height: 6),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: players
+                  .map((p) => _PlayerSidebarRow(
+                        player: p,
+                        showCard: showSelections,
+                        isCurrent: p == currentPlayer,
+                      ))
+                  .toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlayerSidebarRow extends StatelessWidget {
+  final TakePlayer player;
+  final bool showCard;
+  final bool isCurrent;
+
+  const _PlayerSidebarRow({
+    required this.player,
+    required this.showCard,
+    required this.isCurrent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+      decoration: BoxDecoration(
+        color: player.isHuman
+            ? const Color(0xFFFFC107).withValues(alpha: 0.2)
+            : Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: players.map((p) {
-          final isCurrent = p == currentPlayer;
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TakeCardWidget(
-                card: p.selectedCard,
-                width: 38,
-                height: 52,
-                highlighted: isCurrent,
-                faceDown: p.selectedCard == null,
-              ),
-              const SizedBox(height: 3),
-              Text(
-                p.name,
-                style: TextStyle(
-                  color: p.isHuman ? const Color(0xFFFFC107) : Colors.white60,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  player.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: player.isHuman ? const Color(0xFFFFC107) : Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-            ],
-          );
-        }).toList(),
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${player.totalBulls}',
+                      style: TextStyle(
+                        color: player.isHuman ? const Color(0xFFFFC107) : Colors.white54,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    FishGlyph(
+                      size: 9,
+                      color: player.isHuman ? const Color(0xFFFFC107) : Colors.white54,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 4),
+          SizedBox(
+            width: 28,
+            height: 39,
+            child: (showCard && player.selectedCard != null)
+                ? TakeCardWidget(
+                    card: player.selectedCard,
+                    width: 28,
+                    height: 39,
+                    highlighted: isCurrent,
+                  )
+                : null,
+          ),
+        ],
       ),
     );
   }
 }
 
 // ═══════════════════════════════════════════
-// TABLE AREA (4 rows)
+// TABLE GRID (4 rows arranged 2x2)
 // ═══════════════════════════════════════════
 
-class _TableArea extends StatelessWidget {
+class _TableGrid extends StatelessWidget {
   final List<GameRow> rows;
   final int? lastAffectedRow;
   final bool lastWasTake;
   final bool choosingRow;
   final void Function(int) onPickRow;
 
-  const _TableArea({
+  const _TableGrid({
     required this.rows,
     required this.lastAffectedRow,
     required this.lastWasTake,
@@ -316,23 +311,74 @@ class _TableArea extends StatelessWidget {
     required this.onPickRow,
   });
 
+  Widget _cell(int i, Alignment alignment) {
+    final isAffected = lastAffectedRow == i;
+    return GestureDetector(
+      onTap: choosingRow ? () => onPickRow(i) : null,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const labelW = 13.0;
+          const bullsW = 30.0;
+          const hPad = 8.0; // container horizontal padding
+          const sideGaps = 4.0; // gaps flanking the cards row (2px each)
+          const cardGap = 1.5;
+          const vPad = 6.0; // container vertical padding
+          const aspect = 0.72; // card width / height
+          const safetyMargin = 6.0; // guards against sub-pixel rounding overflow
+          const maxCardW = 64.0; // caps out at the hand card size
+
+          final overhead = labelW + bullsW + hPad + sideGaps + cardGap * 4 + safetyMargin;
+          final maxCardWByWidth = (constraints.maxWidth - overhead) / 5;
+          final maxCardHByHeight = constraints.maxHeight - vPad;
+          final maxCardWByHeight = maxCardHByHeight * aspect;
+          var cardW = maxCardWByWidth < maxCardWByHeight ? maxCardWByWidth : maxCardWByHeight;
+          if (cardW > maxCardW) cardW = maxCardW;
+          final cardH = cardW / aspect;
+
+          return Align(
+            alignment: alignment,
+            child: _GameRowWidget(
+              row: rows[i],
+              rowIndex: i,
+              isAffected: isAffected,
+              wasTake: isAffected && lastWasTake,
+              choosingRow: choosingRow,
+              cardW: cardW < 0 ? 0 : cardW,
+              cardH: cardH < 0 ? 0 : cardH,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(rows.length, (i) {
-        final isAffected = lastAffectedRow == i;
-        return GestureDetector(
-          onTap: choosingRow ? () => onPickRow(i) : null,
-          child: _GameRowWidget(
-            row: rows[i],
-            rowIndex: i,
-            isAffected: isAffected,
-            wasTake: isAffected && lastWasTake,
-            choosingRow: choosingRow,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _cell(0, Alignment.bottomCenter)),
+              const SizedBox(width: 3),
+              Expanded(child: _cell(1, Alignment.bottomCenter)),
+            ],
           ),
-        );
-      }),
+        ),
+        const SizedBox(height: 3),
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _cell(2, Alignment.topCenter)),
+              const SizedBox(width: 3),
+              Expanded(child: _cell(3, Alignment.topCenter)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -343,6 +389,8 @@ class _GameRowWidget extends StatelessWidget {
   final bool isAffected;
   final bool wasTake;
   final bool choosingRow;
+  final double cardW;
+  final double cardH;
 
   const _GameRowWidget({
     required this.row,
@@ -350,6 +398,8 @@ class _GameRowWidget extends StatelessWidget {
     required this.isAffected,
     required this.wasTake,
     required this.choosingRow,
+    required this.cardW,
+    required this.cardH,
   });
 
   @override
@@ -371,77 +421,142 @@ class _GameRowWidget extends StatelessWidget {
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: borderColor, width: choosingRow || isAffected ? 2 : 1),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 22,
+            width: 13,
             child: Text(
               '${rowIndex + 1}',
               style: TextStyle(
                 color: choosingRow
                     ? const Color(0xFFFFC107)
                     : Colors.white.withValues(alpha: 0.5),
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: FontWeight.w900,
               ),
               textAlign: TextAlign.center,
             ),
           ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Row(
-              children: List.generate(5, (slot) {
-                if (slot < row.cards.length) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 3),
-                    child: TakeCardWidget(
-                      card: row.cards[slot],
-                      width: 56,
-                      height: 78,
-                    ),
-                  );
-                } else {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 3),
-                    child: Container(
-                      width: 56,
-                      height: 78,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.1),
-                          width: 1,
-                        ),
+          const SizedBox(width: 2),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(5, (slot) {
+              final padRight = slot < 4 ? 1.5 : 0.0;
+              if (slot < row.cards.length) {
+                return Padding(
+                  padding: EdgeInsets.only(right: padRight),
+                  child: TakeCardWidget(
+                    card: row.cards[slot],
+                    width: cardW,
+                    height: cardH,
+                  ),
+                );
+              } else {
+                return Padding(
+                  padding: EdgeInsets.only(right: padRight),
+                  child: Container(
+                    width: cardW,
+                    height: cardH,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        width: 1,
                       ),
                     ),
-                  );
-                }
-              }),
-            ),
+                  ),
+                );
+              }
+            }),
           ),
-          Container(
-            width: 36,
-            alignment: Alignment.centerRight,
-            child: Text(
-              '${row.totalBulls}▲',
-              style: TextStyle(
-                color: row.isFull
-                    ? Colors.redAccent
-                    : Colors.white.withValues(alpha: 0.55),
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
+          const SizedBox(width: 2),
+          SizedBox(
+            width: 30,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  '${row.totalBulls}',
+                  style: TextStyle(
+                    color: row.isFull
+                        ? Colors.redAccent
+                        : Colors.white.withValues(alpha: 0.55),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                FishGlyph(
+                  size: 8,
+                  color: row.isFull ? Colors.redAccent : Colors.white.withValues(alpha: 0.55),
+                ),
+              ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════
+// BOTTOM BAR (hand + confirm button)
+// ═══════════════════════════════════════════
+
+class _BottomBar extends StatelessWidget {
+  final List<TakeCard> hand;
+  final TakeCard? selectedCard;
+  final bool interactive;
+  final void Function(TakeCard) onSelectCard;
+  final bool isSelecting;
+  final bool hasSelectedCard;
+  final VoidCallback? onConfirm;
+
+  const _BottomBar({
+    required this.hand,
+    required this.selectedCard,
+    required this.interactive,
+    required this.onSelectCard,
+    required this.isSelecting,
+    required this.hasSelectedCard,
+    required this.onConfirm,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: _PlayerHand(
+            hand: hand,
+            selectedCard: selectedCard,
+            interactive: interactive,
+            onSelectCard: onSelectCard,
+          ),
+        ),
+        if (isSelecting)
+          SizedBox(
+            width: 138,
+            child: AppButton(
+              label: hasSelectedCard ? 'CONFIRM' : 'SELECT',
+              onTap: onConfirm,
+              backgroundColor: const Color(0xFFFFC107),
+              textColor: Colors.black,
+              borderColor: const Color(0xFFE65100),
+              verticalPadding: 12,
+              fontSize: 13,
+            ),
+          ),
+      ],
     );
   }
 }
@@ -469,68 +584,64 @@ class _PlayerHand extends StatelessWidget {
     const cardW = 64.0;
     const cardH = 89.0;
     const liftY = 8.0;
-    const gap = 8.0;
-    const hPad = 10.0;
-    const fadeW = 28.0;
-    const bg = Color(0xFF1B4332);
+    const hPad = 8.0;
+    const overlapFraction = 0.22; // ~22% of the next card is covered
+    final step = cardW * (1 - overlapFraction);
+
+    // Draw the selected card last so it renders above its overlapping neighbors.
+    final order = List<int>.generate(sorted.length, (i) => i);
+    final selectedIndex = selectedCard == null ? -1 : sorted.indexOf(selectedCard!);
+    if (selectedIndex != -1) {
+      order
+        ..remove(selectedIndex)
+        ..add(selectedIndex);
+    }
+
+    final stackWidth = sorted.isEmpty ? 0.0 : (sorted.length - 1) * step + cardW;
 
     return SizedBox(
-      height: cardH + liftY + 12,
-      child: Stack(
-        children: [
-          ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(hPad, liftY + 6, hPad, 6),
-            itemCount: sorted.length,
-            itemBuilder: (context, i) {
-              final card = sorted[i];
-              final isSelected = selectedCard == card;
-              return Padding(
-                padding: EdgeInsets.only(right: i < sorted.length - 1 ? gap : 0),
-                child: GestureDetector(
-                  onTap: interactive ? () => onSelectCard(card) : null,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    transform: Matrix4.translationValues(0, isSelected ? -liftY : 0, 0),
-                    child: TakeCardWidget(
-                      card: card,
-                      width: cardW,
-                      height: cardH,
-                      highlighted: isSelected,
-                      dimmed: !interactive,
+      height: cardH + liftY + 10,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(hPad, liftY + 4, hPad, 6),
+        child: Align(
+          alignment: Alignment.center,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.center,
+            child: SizedBox(
+              width: stackWidth,
+              height: cardH + liftY,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  for (final i in order)
+                    Positioned(
+                      left: i * step,
+                      top: liftY,
+                      child: GestureDetector(
+                        onTap: interactive ? () => onSelectCard(sorted[i]) : null,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          transform: Matrix4.translationValues(
+                            0,
+                            selectedCard == sorted[i] ? -liftY : 0,
+                            0,
+                          ),
+                          child: TakeCardWidget(
+                            card: sorted[i],
+                            width: cardW,
+                            height: cardH,
+                            highlighted: selectedCard == sorted[i],
+                            dimmed: !interactive,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              );
-            },
-          ),
-          Positioned(
-            left: 0, top: 0, bottom: 0,
-            width: fadeW,
-            child: IgnorePointer(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [bg, Colors.transparent],
-                  ),
-                ),
+                ],
               ),
             ),
           ),
-          Positioned(
-            right: 0, top: 0, bottom: 0,
-            width: fadeW,
-            child: IgnorePointer(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.transparent, bg],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -558,43 +669,21 @@ class TakeCardWidget extends StatelessWidget {
     this.dimmed = false,
   });
 
-  static Color _bgColor(int bulls) => switch (bulls) {
-        1 => Colors.white,
-        2 => const Color(0xFFFFF9C4),
-        3 => const Color(0xFFFFCC80),
-        5 => const Color(0xFFEF9A9A),
-        7 => const Color(0xFF7B1FA2),
-        _ => Colors.white,
-      };
-
-  static Color _textColor(int bulls) =>
-      bulls == 7 ? Colors.white : Colors.black87;
-
   @override
   Widget build(BuildContext context) {
     if (faceDown || card == null) {
-      return Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: const Color(0xFFC62828),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: Colors.white24, width: 1),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(3),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colors.white30, width: 1),
-            ),
-          ),
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: Image.asset('assets/2.png', fit: BoxFit.cover),
         ),
       );
     }
 
-    final bg = highlighted ? const Color(0xFFFFC107) : _bgColor(card!.bulls);
-    final textColor = highlighted ? Colors.black : _textColor(card!.bulls);
+    final tier = tierFor(card!.bulls);
+    final textColor = tier.numberColor;
     final dimColor = dimmed ? Colors.black.withValues(alpha: 0.35) : Colors.transparent;
 
     return Stack(
@@ -603,7 +692,6 @@ class TakeCardWidget extends StatelessWidget {
           width: width,
           height: height,
           decoration: BoxDecoration(
-            color: bg,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
               color: highlighted
@@ -617,6 +705,9 @@ class TakeCardWidget extends StatelessWidget {
           ),
           child: Stack(
             children: [
+              Positioned.fill(
+                child: FishCardBackground(bulls: card!.bulls, width: width, height: height),
+              ),
               Center(
                 child: Text(
                   '${card!.number}',
@@ -625,20 +716,6 @@ class TakeCardWidget extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                     color: textColor,
                     height: 1,
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 3,
-                left: 0,
-                right: 0,
-                child: Text(
-                  _bullsDots(card!.bulls),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: width * 0.14,
-                    color: textColor.withValues(alpha: 0.65),
-                    letterSpacing: 0.5,
                   ),
                 ),
               ),
@@ -656,17 +733,6 @@ class TakeCardWidget extends StatelessWidget {
           ),
       ],
     );
-  }
-
-  static String _bullsDots(int bulls) {
-    return switch (bulls) {
-      1 => '●',
-      2 => '●●',
-      3 => '●●●',
-      5 => '●●●●●',
-      7 => '●●●●●●●',
-      _ => '●',
-    };
   }
 }
 
@@ -695,95 +761,100 @@ class _GameOverOverlay extends StatelessWidget {
     return Container(
       color: Colors.black.withValues(alpha: 0.78),
       child: Center(
-        child: Container(
-          margin: const EdgeInsets.all(32),
-          padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                playerWon ? '🏆' : '📊',
-                style: const TextStyle(fontSize: 44),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                playerWon ? 'YOU WIN!' : '${winner.name} WINS!',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2,
+        child: SingleChildScrollView(
+          child: Container(
+            margin: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(24),
+            constraints: const BoxConstraints(maxWidth: 380),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  playerWon ? '🏆' : '📊',
+                  style: const TextStyle(fontSize: 36),
                 ),
-              ),
-              const SizedBox(height: 16),
-              ...players.asMap().entries.map((e) {
-                final rank = e.key + 1;
-                final p = e.value;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
-                  child: Row(
-                    children: [
-                      Text(
-                        '$rank.',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: rank == 1 ? const Color(0xFFE65100) : Colors.black54,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          p.name,
+                const SizedBox(height: 6),
+                Text(
+                  playerWon ? 'YOU WIN!' : '${winner.name} WINS!',
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...players.asMap().entries.map((e) {
+                  final rank = e.key + 1;
+                  final p = e.value;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      children: [
+                        Text(
+                          '$rank.',
                           style: TextStyle(
+                            fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            fontWeight: p.isHuman ? FontWeight.bold : FontWeight.normal,
+                            color: rank == 1 ? const Color(0xFFE65100) : Colors.black54,
                           ),
                         ),
-                      ),
-                      Text(
-                        '${p.totalBulls} bulls',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: rank == 1 ? const Color(0xFFE65100) : Colors.black54,
-                          fontWeight: FontWeight.bold,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            p.name,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: p.isHuman ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
                         ),
+                        Text(
+                          '${p.totalBulls} fish',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: rank == 1 ? const Color(0xFFE65100) : Colors.black54,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppButton(
+                        label: 'PLAY AGAIN',
+                        onTap: onPlayAgain,
+                        backgroundColor: Colors.black,
+                        textColor: Colors.white,
+                        borderColor: Colors.black,
+                        verticalPadding: 12,
+                        fontSize: 12,
                       ),
-                    ],
-                  ),
-                );
-              }),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: AppButton(
-                  label: 'PLAY AGAIN',
-                  onTap: onPlayAgain,
-                  backgroundColor: Colors.black,
-                  textColor: Colors.white,
-                  borderColor: Colors.black,
-                  verticalPadding: 13,
-                  fontSize: 13,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: AppButton(
+                        label: 'MENU',
+                        onTap: onMenu,
+                        backgroundColor: Colors.white,
+                        textColor: Colors.black,
+                        borderColor: Colors.black,
+                        borderWidth: 1.5,
+                        verticalPadding: 12,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: AppButton(
-                  label: 'MENU',
-                  onTap: onMenu,
-                  backgroundColor: Colors.white,
-                  textColor: Colors.black,
-                  borderColor: Colors.black,
-                  borderWidth: 1.5,
-                  verticalPadding: 13,
-                  fontSize: 13,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -21,43 +21,47 @@ class _MenuScreenState extends State<MenuScreen> {
           ),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _TakeTitle(),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Place cards in rows. If you're forced\nto add the 6th card, you take the row\nand collect bull penalty points.\nLowest score wins!",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Color(0xFFB7E4C7),
-                      fontSize: 13,
-                      height: 1.6,
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-                  AppButton(
-                    label: 'PLAY',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const GameScreen(
-                          playerCount: 5,
-                          playerName: 'You',
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const _TakeTitle(),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "Place cards in rows. If you're forced to add the 6th card,\nyou take the row and collect bull penalty points. Lowest score wins!",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFFB7E4C7),
+                          fontSize: 12,
+                          height: 1.4,
                         ),
                       ),
-                    ),
-                    backgroundColor: const Color(0xFFFFC107),
-                    textColor: Colors.black,
-                    borderColor: const Color(0xFFE65100),
-                    verticalPadding: 16,
-                    fontSize: 16,
+                      const SizedBox(height: 18),
+                      AppButton(
+                        label: 'PLAY',
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const GameScreen(
+                              playerCount: 5,
+                              playerName: 'You',
+                            ),
+                          ),
+                        ),
+                        backgroundColor: const Color(0xFFFFC107),
+                        textColor: Colors.black,
+                        borderColor: const Color(0xFFE65100),
+                        verticalPadding: 12,
+                        fontSize: 15,
+                      ),
+                      const SizedBox(height: 10),
+                      _RulesButton(onTap: () => _showRules(context)),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  _RulesButton(onTap: () => _showRules(context)),
-                ],
+                ),
               ),
             ),
           ),
@@ -114,20 +118,20 @@ class _TakeTitle extends StatelessWidget {
           'TAKE',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 56,
+            fontSize: 32,
             fontWeight: FontWeight.w900,
-            letterSpacing: 8,
+            letterSpacing: 6,
             height: 1,
           ),
           textAlign: TextAlign.center,
         ),
         Container(
-          margin: const EdgeInsets.symmetric(vertical: 4),
+          margin: const EdgeInsets.symmetric(vertical: 2),
           child: const Text(
             '5',
             style: TextStyle(
               color: Color(0xFFFFC107),
-              fontSize: 80,
+              fontSize: 46,
               fontWeight: FontWeight.w900,
               height: 0.9,
             ),
