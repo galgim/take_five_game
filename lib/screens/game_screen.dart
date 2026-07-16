@@ -141,9 +141,10 @@ class _GameScreenState extends State<GameScreen> {
                                 selectedCard: _gs.selectedCard,
                                 interactive: isSelecting,
                                 onSelectCard: _gs.selectCard,
-                                isSelecting: isSelecting,
                                 hasSelectedCard: _gs.selectedCard != null,
-                                onConfirm: _gs.selectedCard != null ? _gs.confirmSelection : null,
+                                onConfirm: isSelecting && _gs.selectedCard != null
+                                    ? _gs.confirmSelection
+                                    : null,
                               ),
                             ],
                           ),
@@ -503,7 +504,6 @@ class _BottomBar extends StatelessWidget {
   final TakeCard? selectedCard;
   final bool interactive;
   final void Function(TakeCard) onSelectCard;
-  final bool isSelecting;
   final bool hasSelectedCard;
   final VoidCallback? onConfirm;
 
@@ -512,7 +512,6 @@ class _BottomBar extends StatelessWidget {
     required this.selectedCard,
     required this.interactive,
     required this.onSelectCard,
-    required this.isSelecting,
     required this.hasSelectedCard,
     required this.onConfirm,
   });
@@ -530,19 +529,19 @@ class _BottomBar extends StatelessWidget {
             onSelectCard: onSelectCard,
           ),
         ),
-        if (isSelecting)
-          SizedBox(
-            width: 138,
-            child: AppButton(
-              label: hasSelectedCard ? 'CONFIRM' : 'SELECT',
-              onTap: onConfirm,
-              backgroundColor: const Color(0xFF52B788),
-              textColor: Colors.white,
-              borderColor: const Color(0xFF2D6A4F),
-              verticalPadding: 12,
-              fontSize: 13,
-            ),
+        SizedBox(
+          width: 100,
+          child: AppButton(
+            label: hasSelectedCard ? 'CONFIRM' : 'SELECT',
+            onTap: onConfirm,
+            backgroundColor: const Color(0xFF52B788),
+            textColor: Colors.white,
+            borderColor: const Color(0xFF2D6A4F),
+            verticalPadding: 12,
+            horizontalPadding: 10,
+            fontSize: 13,
           ),
+        ),
       ],
     );
   }
@@ -568,9 +567,9 @@ class _PlayerHand extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sorted = [...hand]..sort((a, b) => a.number.compareTo(b.number));
-    const cardW = 82.0;
-    const cardH = 115.0;
-    const minStep = 22.0;
+    const cardW = 70.0;
+    const cardH = 98.0;
+    const minStep = 19.0;
     const hPad = 8.0;
 
     final selectedIndex = selectedCard == null ? -1 : sorted.indexOf(selectedCard!);
@@ -605,6 +604,7 @@ class _PlayerHand extends StatelessWidget {
             children: [
               for (final i in order)
                 Positioned(
+                  key: ValueKey(sorted[i].number),
                   left: leftOffset + i * step,
                   top: 5,
                   child: GestureDetector(

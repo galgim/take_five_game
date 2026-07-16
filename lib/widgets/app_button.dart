@@ -8,6 +8,7 @@ class AppButton extends StatelessWidget {
   final Color borderColor;
   final double borderWidth;
   final double verticalPadding;
+  final double horizontalPadding;
   final double borderRadius;
   final double fontSize;
   final double letterSpacing;
@@ -21,6 +22,7 @@ class AppButton extends StatelessWidget {
     this.borderColor = Colors.black,
     this.borderWidth = 1.5,
     this.verticalPadding = 14,
+    this.horizontalPadding = 24,
     this.borderRadius = 10,
     this.fontSize = 14,
     this.letterSpacing = 1.2,
@@ -32,7 +34,7 @@ class AppButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 24, vertical: verticalPadding),
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
         decoration: BoxDecoration(
           color: enabled ? backgroundColor : Colors.grey.shade400,
           borderRadius: BorderRadius.circular(borderRadius),
@@ -42,16 +44,17 @@ class AppButton extends StatelessWidget {
           ),
         ),
         child: Center(
-          child: Text(
-            label,
-            maxLines: 1,
-            softWrap: false,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.w800,
-              color: enabled ? textColor : Colors.grey.shade600,
-              letterSpacing: letterSpacing,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: fontSize,
+                fontWeight: FontWeight.w800,
+                color: enabled ? textColor : Colors.grey.shade600,
+                letterSpacing: letterSpacing,
+              ),
             ),
           ),
         ),
