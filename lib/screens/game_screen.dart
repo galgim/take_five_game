@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../game/game_state.dart';
 import '../models/take_card.dart';
 import '../models/game_row.dart';
@@ -274,12 +275,13 @@ class _PlayerSidebarRow extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 3),
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: player.isHuman ? const Color(0xFFFFC107) : Colors.white54,
+                    SvgPicture.asset(
+                      'assets/Star.svg',
+                      width: 9,
+                      height: 9,
+                      colorFilter: ColorFilter.mode(
+                        player.isHuman ? const Color(0xFFFFC107) : Colors.white54,
+                        BlendMode.srcIn,
                       ),
                     ),
                   ],
@@ -488,12 +490,13 @@ class _GameRowWidget extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 2),
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: row.isFull ? Colors.redAccent : Colors.white.withValues(alpha: 0.55),
+                SvgPicture.asset(
+                  'assets/Star.svg',
+                  width: 8,
+                  height: 8,
+                  colorFilter: ColorFilter.mode(
+                    row.isFull ? Colors.redAccent : Colors.white.withValues(alpha: 0.55),
+                    BlendMode.srcIn,
                   ),
                 ),
               ],
@@ -670,10 +673,13 @@ class TakeCardWidget extends StatelessWidget {
     if (faceDown || card == null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(6),
-        child: SizedBox(
+        child: Container(
           width: width,
           height: height,
-          child: Image.asset('assets/2.png', fit: BoxFit.cover),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1B4332),
+            borderRadius: BorderRadius.circular(6),
+          ),
         ),
       );
     }
@@ -702,13 +708,21 @@ class TakeCardWidget extends StatelessWidget {
           child: Stack(
             children: [
               Positioned.fill(
-                child: FishCardBackground(bulls: card!.bulls, width: width, height: height),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: SvgPicture.asset(
+                    'assets/Card ${card!.bulls}.svg',
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ),
-              Center(
+              Positioned(
+                top: width * 0.08,
+                left: width * 0.1,
                 child: Text(
                   '${card!.number}',
                   style: TextStyle(
-                    fontSize: width * 0.36,
+                    fontSize: width * 0.28,
                     fontWeight: FontWeight.w900,
                     color: textColor,
                     height: 1,
