@@ -102,45 +102,57 @@ class _GameScreenState extends State<GameScreen> {
             child: CustomPaint(painter: _CrosshatchPainter(const Color(0xFF2D6A4F))),
           ),
           SafeArea(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _PlayerSidebar(
-                  players: _gs.players,
-                  currentPlayer: _gs.lastPlacingPlayer,
-                  showSelections: showSelections,
-                  onMenu: _openMenu,
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(6, 6, 10, 6),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 10, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: _GearButton(onTap: _openMenu),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: _TableGrid(
-                            rows: _gs.rows,
-                            lastAffectedRow: _gs.lastAffectedRow,
-                            lastWasTake: _gs.lastWasTake,
-                            choosingRow: _gs.choosingRow,
-                            onPickRow: _gs.pickRow,
-                          ),
+                        _PlayerSidebar(
+                          players: _gs.players,
+                          currentPlayer: _gs.lastPlacingPlayer,
+                          showSelections: showSelections,
                         ),
-                        const SizedBox(height: 6),
-                        _BottomBar(
-                          hand: _gs.human.hand,
-                          selectedCard: _gs.selectedCard,
-                          interactive: isSelecting,
-                          onSelectCard: _gs.selectCard,
-                          isSelecting: isSelecting,
-                          hasSelectedCard: _gs.selectedCard != null,
-                          onConfirm: _gs.selectedCard != null ? _gs.confirmSelection : null,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: _TableGrid(
+                                  rows: _gs.rows,
+                                  lastAffectedRow: _gs.lastAffectedRow,
+                                  lastWasTake: _gs.lastWasTake,
+                                  choosingRow: _gs.choosingRow,
+                                  onPickRow: _gs.pickRow,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              _BottomBar(
+                                hand: _gs.human.hand,
+                                selectedCard: _gs.selectedCard,
+                                interactive: isSelecting,
+                                onSelectCard: _gs.selectCard,
+                                isSelecting: isSelecting,
+                                hasSelectedCard: _gs.selectedCard != null,
+                                onConfirm: _gs.selectedCard != null ? _gs.confirmSelection : null,
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           if (_gs.gameOver)
@@ -173,40 +185,27 @@ class _PlayerSidebar extends StatelessWidget {
   final List<TakePlayer> players;
   final TakePlayer? currentPlayer;
   final bool showSelections;
-  final VoidCallback onMenu;
 
   const _PlayerSidebar({
     required this.players,
     required this.currentPlayer,
     required this.showSelections,
-    required this.onMenu,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: 132,
-      padding: const EdgeInsets.fromLTRB(8, 6, 6, 6),
       child: Column(
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _GearButton(onTap: onMenu),
-          ),
-          const SizedBox(height: 6),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: players
-                  .map((p) => _PlayerSidebarRow(
-                        player: p,
-                        showCard: showSelections,
-                        isCurrent: p == currentPlayer,
-                      ))
-                  .toList(),
-            ),
-          ),
-        ],
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: players
+            .map((p) => _PlayerSidebarRow(
+                  player: p,
+                  showCard: showSelections,
+                  isCurrent: p == currentPlayer,
+                ))
+            .toList(),
       ),
     );
   }
@@ -264,9 +263,13 @@ class _PlayerSidebarRow extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 3),
-                    FishGlyph(
-                      size: 9,
-                      color: player.isHuman ? const Color(0xFFFFC107) : Colors.white54,
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: player.isHuman ? const Color(0xFFFFC107) : Colors.white54,
+                      ),
                     ),
                   ],
                 ),
@@ -317,17 +320,15 @@ class _TableGrid extends StatelessWidget {
       onTap: choosingRow ? () => onPickRow(i) : null,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          const labelW = 13.0;
           const bullsW = 30.0;
-          const hPad = 8.0; // container horizontal padding
-          const sideGaps = 4.0; // gaps flanking the cards row (2px each)
+          const hPad = 8.0;
           const cardGap = 1.5;
-          const vPad = 6.0; // container vertical padding
-          const aspect = 0.72; // card width / height
-          const safetyMargin = 6.0; // guards against sub-pixel rounding overflow
-          const maxCardW = 64.0; // caps out at the hand card size
+          const vPad = 6.0;
+          const aspect = 50.0 / 70.0;
+          const safetyMargin = 6.0;
+          const maxCardW = 50.0;
 
-          final overhead = labelW + bullsW + hPad + sideGaps + cardGap * 4 + safetyMargin;
+          final overhead = bullsW + hPad + cardGap * 4 + safetyMargin;
           final maxCardWByWidth = (constraints.maxWidth - overhead) / 5;
           final maxCardHByHeight = constraints.maxHeight - vPad;
           final maxCardWByHeight = maxCardHByHeight * aspect;
@@ -339,7 +340,6 @@ class _TableGrid extends StatelessWidget {
             alignment: alignment,
             child: _GameRowWidget(
               row: rows[i],
-              rowIndex: i,
               isAffected: isAffected,
               wasTake: isAffected && lastWasTake,
               choosingRow: choosingRow,
@@ -385,7 +385,6 @@ class _TableGrid extends StatelessWidget {
 
 class _GameRowWidget extends StatelessWidget {
   final GameRow row;
-  final int rowIndex;
   final bool isAffected;
   final bool wasTake;
   final bool choosingRow;
@@ -394,7 +393,6 @@ class _GameRowWidget extends StatelessWidget {
 
   const _GameRowWidget({
     required this.row,
-    required this.rowIndex,
     required this.isAffected,
     required this.wasTake,
     required this.choosingRow,
@@ -430,21 +428,6 @@ class _GameRowWidget extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: 13,
-            child: Text(
-              '${rowIndex + 1}',
-              style: TextStyle(
-                color: choosingRow
-                    ? const Color(0xFFFFC107)
-                    : Colors.white.withValues(alpha: 0.5),
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(width: 2),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: List.generate(5, (slot) {
@@ -494,9 +477,13 @@ class _GameRowWidget extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 2),
-                FishGlyph(
-                  size: 8,
-                  color: row.isFull ? Colors.redAccent : Colors.white.withValues(alpha: 0.55),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: row.isFull ? Colors.redAccent : Colors.white.withValues(alpha: 0.55),
+                  ),
                 ),
               ],
             ),
@@ -549,9 +536,9 @@ class _BottomBar extends StatelessWidget {
             child: AppButton(
               label: hasSelectedCard ? 'CONFIRM' : 'SELECT',
               onTap: onConfirm,
-              backgroundColor: const Color(0xFFFFC107),
-              textColor: Colors.black,
-              borderColor: const Color(0xFFE65100),
+              backgroundColor: const Color(0xFF52B788),
+              textColor: Colors.white,
+              borderColor: const Color(0xFF2D6A4F),
               verticalPadding: 12,
               fontSize: 13,
             ),
@@ -581,68 +568,67 @@ class _PlayerHand extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sorted = [...hand]..sort((a, b) => a.number.compareTo(b.number));
-    const cardW = 64.0;
-    const cardH = 89.0;
-    const liftY = 8.0;
+    const cardW = 82.0;
+    const cardH = 115.0;
+    const minStep = 22.0;
     const hPad = 8.0;
-    const overlapFraction = 0.22; // ~22% of the next card is covered
-    final step = cardW * (1 - overlapFraction);
 
-    // Draw the selected card last so it renders above its overlapping neighbors.
-    final order = List<int>.generate(sorted.length, (i) => i);
     final selectedIndex = selectedCard == null ? -1 : sorted.indexOf(selectedCard!);
+    final order = List<int>.generate(sorted.length, (i) => i);
     if (selectedIndex != -1) {
       order
         ..remove(selectedIndex)
         ..add(selectedIndex);
     }
 
-    final stackWidth = sorted.isEmpty ? 0.0 : (sorted.length - 1) * step + cardW;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableW = constraints.maxWidth - hPad * 2;
+        final n = sorted.length;
 
-    return SizedBox(
-      height: cardH + liftY + 10,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(hPad, liftY + 4, hPad, 6),
-        child: Align(
-          alignment: Alignment.center,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.center,
-            child: SizedBox(
-              width: stackWidth,
-              height: cardH + liftY,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  for (final i in order)
-                    Positioned(
-                      left: i * step,
-                      top: liftY,
-                      child: GestureDetector(
-                        onTap: interactive ? () => onSelectCard(sorted[i]) : null,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          transform: Matrix4.translationValues(
-                            0,
-                            selectedCard == sorted[i] ? -liftY : 0,
-                            0,
-                          ),
-                          child: TakeCardWidget(
-                            card: sorted[i],
-                            width: cardW,
-                            height: cardH,
-                            highlighted: selectedCard == sorted[i],
-                            dimmed: !interactive,
-                          ),
-                        ),
+        double step;
+        if (n <= 1) {
+          step = cardW;
+        } else {
+          step = (availableW - cardW) / (n - 1);
+          if (step > cardW) step = cardW;
+          if (step < minStep) step = minStep;
+        }
+
+        final stackWidth = n == 0 ? 0.0 : (n - 1) * step + cardW;
+        final leftOffset = hPad + ((availableW - stackWidth) / 2).clamp(0.0, double.infinity);
+
+        return SizedBox(
+          height: cardH + 10,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              for (final i in order)
+                Positioned(
+                  left: leftOffset + i * step,
+                  top: 5,
+                  child: GestureDetector(
+                    onTap: interactive ? () => onSelectCard(sorted[i]) : null,
+                    child: AnimatedSlide(
+                      offset: sorted[i] == selectedCard
+                          ? const Offset(0, -0.3)
+                          : Offset.zero,
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOut,
+                      child: TakeCardWidget(
+                        card: sorted[i],
+                        width: cardW,
+                        height: cardH,
+                        highlighted: selectedCard == sorted[i],
+                        dimmed: !interactive,
                       ),
                     ),
-                ],
-              ),
-            ),
+                  ),
+                ),
+            ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

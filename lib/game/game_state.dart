@@ -109,7 +109,7 @@ class GameState extends ChangeNotifier {
 
   void selectCard(TakeCard card) {
     if (revealPhase || choosingRow || gameOver) return;
-    selectedCard = card;
+    selectedCard = selectedCard == card ? null : card;
     notifyListeners();
   }
 
