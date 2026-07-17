@@ -105,65 +105,58 @@ class _GameScreenState extends State<GameScreen> {
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(8, 8, 10, 8),
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.45),
-                    width: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: _GearButton(onTap: _openMenu),
                   ),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                padding: const EdgeInsets.all(6),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: _GearButton(onTap: _openMenu),
-                    ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _PlayerSidebar(
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 27),
+                          child: _PlayerSidebar(
                             players: _gs.players,
                             currentPlayer: _gs.lastPlacingPlayer,
                             showSelections: showSelections,
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(
-                                  child: _TableGrid(
-                                    rows: _gs.rows,
-                                    lastAffectedRow: _gs.lastAffectedRow,
-                                    lastWasTake: _gs.lastWasTake,
-                                    choosingRow: _gs.choosingRow,
-                                    onPickRow: _gs.pickRow,
-                                  ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: _TableGrid(
+                                  rows: _gs.rows,
+                                  lastAffectedRow: _gs.lastAffectedRow,
+                                  lastWasTake: _gs.lastWasTake,
+                                  choosingRow: _gs.choosingRow,
+                                  onPickRow: _gs.pickRow,
                                 ),
-                                const SizedBox(height: 6),
-                                _BottomBar(
-                                  hand: _gs.human.hand,
-                                  selectedCard: _gs.selectedCard,
-                                  interactive: isSelecting,
-                                  onSelectCard: _gs.selectCard,
-                                  hasSelectedCard: _gs.selectedCard != null,
-                                  onConfirm: isSelecting && _gs.selectedCard != null
-                                      ? _gs.confirmSelection
-                                      : null,
-                                ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(height: 6),
+                              _BottomBar(
+                                hand: _gs.human.hand,
+                                selectedCard: _gs.selectedCard,
+                                interactive: isSelecting,
+                                onSelectCard: _gs.selectCard,
+                                hasSelectedCard: _gs.selectedCard != null,
+                                onConfirm: isSelecting && _gs.selectedCard != null
+                                    ? _gs.confirmSelection
+                                    : null,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -632,7 +625,6 @@ class _PlayerHand extends StatelessWidget {
                         card: sorted[i],
                         width: cardW,
                         height: cardH,
-                        highlighted: selectedCard == sorted[i],
                         dimmed: !interactive,
                       ),
                     ),
