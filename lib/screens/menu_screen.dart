@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../widgets/app_button.dart';
 import 'game_screen.dart';
 
@@ -17,7 +18,7 @@ class _MenuScreenState extends State<MenuScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: CustomPaint(painter: _CrosshatchPainter(const Color(0xFF2D6A4F))),
+            child: SvgPicture.asset('assets/Group 1.svg', fit: BoxFit.cover),
           ),
           SafeArea(
             child: Padding(
@@ -167,27 +168,3 @@ class _RulesButton extends StatelessWidget {
   }
 }
 
-class _CrosshatchPainter extends CustomPainter {
-  final Color color;
-
-  const _CrosshatchPainter(this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 0.7
-      ..style = PaintingStyle.stroke;
-
-    const spacing = 28.0;
-    for (double a = -size.height; a <= size.width; a += spacing) {
-      canvas.drawLine(Offset(a, 0), Offset(a + size.height, size.height), paint);
-    }
-    for (double a = 0; a <= size.width + size.height; a += spacing) {
-      canvas.drawLine(Offset(a, 0), Offset(a - size.height, size.height), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_CrosshatchPainter old) => old.color != color;
-}

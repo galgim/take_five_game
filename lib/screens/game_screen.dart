@@ -100,7 +100,7 @@ class _GameScreenState extends State<GameScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: CustomPaint(painter: _CrosshatchPainter(const Color(0xFF2D6A4F))),
+            child: SvgPicture.asset('assets/Group 1.svg', fit: BoxFit.cover),
           ),
           SafeArea(
             child: Padding(
@@ -929,31 +929,3 @@ class _DialogButton extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────
-// CROSSHATCH BACKGROUND
-// ─────────────────────────────────────────
-
-class _CrosshatchPainter extends CustomPainter {
-  final Color color;
-
-  const _CrosshatchPainter(this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 0.7
-      ..style = PaintingStyle.stroke;
-
-    const spacing = 28.0;
-    for (double a = -size.height; a <= size.width; a += spacing) {
-      canvas.drawLine(Offset(a, 0), Offset(a + size.height, size.height), paint);
-    }
-    for (double a = 0; a <= size.width + size.height; a += spacing) {
-      canvas.drawLine(Offset(a, 0), Offset(a - size.height, size.height), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_CrosshatchPainter old) => old.color != color;
-}

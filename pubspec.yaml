@@ -65,6 +65,7 @@ flutter:
     - assets/Card 5.svg
     - assets/Card 7.svg
     - assets/Star.svg
+    - assets/Group 1.svg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
