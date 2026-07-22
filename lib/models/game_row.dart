@@ -11,5 +11,4 @@ class GameRow {
   bool get isFull => cards.length >= 5;
 
   GameRow withCard(TakeCard c) => GameRow([...cards, c]);
-  GameRow resetWith(TakeCard c) => GameRow([c]);
 }

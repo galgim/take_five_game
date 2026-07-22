@@ -7,12 +7,25 @@ import '../logic/ai_strategy.dart';
 
 typedef _Placement = ({TakePlayer player, TakeCard card});
 
+/// A card in flight from a player's sidebar slot to a row slot. While this is
+/// non-null the row is *not* yet mutated — the UI animates the card, then calls
+/// [GameState.commitFlight] to apply the placement and advance.
+typedef CardFlight = ({TakePlayer player, TakeCard card, int rowIdx, int slotIdx});
+
+/// A row being taken. While non-null the row is *not* yet cleared — the UI flies
+/// [takenCards] to [player], then calls [GameState.commitRowTake].
+typedef RowTake = ({
+  TakePlayer player,
+  TakeCard newCard,
+  int rowIdx,
+  List<TakeCard> takenCards,
+});
+
 class GameState extends ChangeNotifier {
   late List<TakePlayer> players;
   late List<GameRow> rows;
   int round = 0;
   bool gameOver = false;
-  String gameLog = '';
 
   TakeCard? selectedCard;
 
@@ -25,9 +38,18 @@ class GameState extends ChangeNotifier {
 
   // UI feedback for the currently-resolving placement
   TakePlayer? lastPlacingPlayer;
-  TakeCard? lastPlacedCard;
   int? lastAffectedRow;
   bool lastWasTake = false;
+
+  // Non-null while a placed card is animating into its row slot.
+  CardFlight? flight;
+
+  // Non-null while a taken row's cards are animating to the taking player.
+  RowTake? rowTake;
+
+  // Bumped on every new game; delayed/flight callbacks captured under an old
+  // generation become no-ops so a stale timer can't touch a fresh game.
+  int generation = 0;
 
   bool _disposed = false;
   bool _paused = false;
@@ -43,6 +65,7 @@ class GameState extends ChangeNotifier {
   }
 
   void startGame(int playerCount, String playerName) {
+    generation++;
     final deck = Deck.createShuffled();
 
     players = [
@@ -55,6 +78,11 @@ class GameState extends ChangeNotifier {
       deck.removeRange(0, 10);
     }
 
+    // Sorted once here rather than on every build; removal preserves order.
+    // AI hands are left in deal order — sorting them would change how
+    // AiStrategy.chooseCard breaks ties between equally-scored cards.
+    human.hand.sort((a, b) => a.number.compareTo(b.number));
+
     rows = List.generate(4, (i) => GameRow([deck[i]]));
 
     round = 1;
@@ -63,7 +91,6 @@ class GameState extends ChangeNotifier {
     choosingRow = false;
     selectedCard = null;
     _clearFeedback();
-    gameLog = 'Round $round — pick a card to play.';
     notifyListeners();
   }
 
@@ -90,8 +117,9 @@ class GameState extends ChangeNotifier {
   }
 
   void _delayed(Duration d, void Function() fn) {
+    final gen = generation;
     Future.delayed(d, () {
-      if (_disposed) return;
+      if (_disposed || gen != generation) return;
       if (_paused) {
         _pendingAction = fn;
         return;
@@ -102,9 +130,10 @@ class GameState extends ChangeNotifier {
 
   void _clearFeedback() {
     lastPlacingPlayer = null;
-    lastPlacedCard = null;
     lastAffectedRow = null;
     lastWasTake = false;
+    flight = null;
+    rowTake = null;
   }
 
   void selectCard(TakeCard card) {
@@ -131,7 +160,6 @@ class GameState extends ChangeNotifier {
     _placementIdx = 0;
     selectedCard = null;
     revealPhase = true;
-    gameLog = 'Cards revealed — lowest plays first.';
     notifyListeners();
 
     _delayed(const Duration(milliseconds: 1400), _processNextPlacement);
@@ -147,7 +175,6 @@ class GameState extends ChangeNotifier {
     final player = placement.player;
     final card = placement.card;
     lastPlacingPlayer = player;
-    lastPlacedCard = card;
 
     final rowIdx = AiStrategy.targetRowIndex(card, rows);
 
@@ -155,64 +182,79 @@ class GameState extends ChangeNotifier {
       if (player.isHuman) {
         _pendingHumanCard = card;
         choosingRow = true;
-        gameLog = '${card.number} is lower than all rows — choose a row to take!';
         notifyListeners();
       } else {
-        final chosen = AiStrategy.chooseBestRow(rows);
-        final bulls = rows[chosen].totalBulls;
-        _takeRow(player, chosen, card);
-        gameLog = '${player.name} plays ${card.number} — takes Row ${chosen + 1} ($bulls bulls).';
-        notifyListeners();
-        _delayed(const Duration(milliseconds: 900), () {
-          _placementIdx++;
-          _processNextPlacement();
-        });
+        _announceTake(player, AiStrategy.chooseBestRow(rows), card);
       }
     } else if (rows[rowIdx].isFull) {
-      final bulls = rows[rowIdx].totalBulls;
-      _takeRow(player, rowIdx, card);
-      final who = player.isHuman ? 'You place' : '${player.name} places';
-      gameLog = '$who ${card.number} — takes Row ${rowIdx + 1} ($bulls bulls)!';
-      notifyListeners();
-      _delayed(const Duration(milliseconds: 900), () {
-        _placementIdx++;
-        _processNextPlacement();
-      });
+      _announceTake(player, rowIdx, card);
     } else {
-      rows[rowIdx] = rows[rowIdx].withCard(card);
+      // Announce the flight; the UI animates the card and calls commitFlight,
+      // which is what actually adds it to the row and advances the queue.
       lastAffectedRow = rowIdx;
       lastWasTake = false;
-      final who = player.isHuman ? 'You play' : '${player.name} plays';
-      gameLog = '$who ${card.number} → Row ${rowIdx + 1}.';
+      flight = (player: player, card: card, rowIdx: rowIdx, slotIdx: rows[rowIdx].size);
       notifyListeners();
-      _delayed(const Duration(milliseconds: 700), () {
-        _placementIdx++;
-        _processNextPlacement();
-      });
     }
   }
 
-  void _takeRow(TakePlayer player, int rowIdx, TakeCard newCard) {
-    final takenBulls = rows[rowIdx].totalBulls;
-    player.totalBulls += takenBulls;
+  /// Applies the pending [flight] (called by the UI when the card lands) and
+  /// schedules the next placement. Ignored if the game moved on ([gen] stale)
+  /// or was disposed.
+  void commitFlight(int gen) {
+    if (_disposed || gen != generation) return;
+    final f = flight;
+    if (f == null) return;
+    flight = null;
+    f.player.selectedCard = null; // the card has left the sidebar
+    rows[f.rowIdx] = rows[f.rowIdx].withCard(f.card);
+    lastAffectedRow = f.rowIdx;
+    lastWasTake = false;
+    notifyListeners();
+    _delayed(const Duration(milliseconds: 350), () {
+      _placementIdx++;
+      _processNextPlacement();
+    });
+  }
+
+  /// Announces a row take. Nothing is mutated yet: the UI flies the row's cards
+  /// to [player] (via the pile animation), calls [commitRowTake] when they land,
+  /// and that in turn stages [newCard]'s slide-in as a normal placement flight.
+  void _announceTake(TakePlayer player, int rowIdx, TakeCard newCard) {
+    lastPlacingPlayer = player;
     lastAffectedRow = rowIdx;
     lastWasTake = true;
-    rows[rowIdx] = GameRow([newCard]);
+    rowTake = (
+      player: player,
+      newCard: newCard,
+      rowIdx: rowIdx,
+      takenCards: List.of(rows[rowIdx].cards),
+    );
+    notifyListeners();
+  }
+
+  /// Applies the pending [rowTake] (called by the UI when the pile lands on the
+  /// taker): credits the bulls, empties the row, and stages the new card's
+  /// flight into the now-empty slot 0.
+  void commitRowTake(int gen) {
+    if (_disposed || gen != generation) return;
+    final t = rowTake;
+    if (t == null) return;
+    rowTake = null;
+    t.player.totalBulls += rows[t.rowIdx].totalBulls;
+    rows[t.rowIdx] = GameRow(const []); // emptied; new card flies in next
+    lastAffectedRow = t.rowIdx;
+    lastWasTake = true;
+    flight = (player: t.player, card: t.newCard, rowIdx: t.rowIdx, slotIdx: 0);
+    notifyListeners();
   }
 
   void pickRow(int rowIdx) {
     if (!choosingRow || _pendingHumanCard == null) return;
     final card = _pendingHumanCard!;
-    final bulls = rows[rowIdx].totalBulls;
-    _takeRow(human, rowIdx, card);
-    gameLog = 'You take Row ${rowIdx + 1} ($bulls bulls) and play ${card.number}.';
     _pendingHumanCard = null;
     choosingRow = false;
-    notifyListeners();
-    _delayed(const Duration(milliseconds: 900), () {
-      _placementIdx++;
-      _processNextPlacement();
-    });
+    _announceTake(human, rowIdx, card);
   }
 
   void _endRound() {
@@ -225,13 +267,8 @@ class GameState extends ChangeNotifier {
 
     if (human.hand.isEmpty) {
       gameOver = true;
-      final winner = sortedByBulls.first;
-      gameLog = winner.isHuman
-          ? 'Game over! You win with ${winner.totalBulls} bulls!'
-          : 'Game over! ${winner.name} wins with ${winner.totalBulls} bulls.';
     } else {
       round++;
-      gameLog = 'Round $round — pick a card to play.';
     }
     notifyListeners();
   }

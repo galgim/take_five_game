@@ -20,13 +20,14 @@ class AiStrategy {
     TakeCard? best;
     int bestScore = 999999;
 
+    // Invariant across the loop — rows aren't mutated while choosing.
+    final minBulls = rows.map((r) => r.totalBulls).reduce((a, b) => a < b ? a : b);
+
     for (final card in hand) {
       final idx = targetRowIndex(card, rows);
       int score;
       if (idx == -1) {
         // Will need to take a row — cost = cheapest row's bulls
-        final minBulls =
-            rows.map((r) => r.totalBulls).reduce((a, b) => a < b ? a : b);
         score = 1000 + minBulls;
       } else {
         final row = rows[idx];
