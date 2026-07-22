@@ -21,22 +21,22 @@ class AiStrategy {
     int bestScore = 999999;
 
     // Invariant across the loop — rows aren't mutated while choosing.
-    final minBulls = rows.map((r) => r.totalBulls).reduce((a, b) => a < b ? a : b);
+    final minStars = rows.map((r) => r.totalStars).reduce((a, b) => a < b ? a : b);
 
     for (final card in hand) {
       final idx = targetRowIndex(card, rows);
       int score;
       if (idx == -1) {
-        // Will need to take a row — cost = cheapest row's bulls
-        score = 1000 + minBulls;
+        // Will need to take a row — cost = cheapest row's stars
+        score = 1000 + minStars;
       } else {
         final row = rows[idx];
         if (row.isFull) {
-          // Will trigger 6th-card rule — pay that row's bulls
-          score = 500 + row.totalBulls;
+          // Will trigger 6th-card rule — pay that row's stars
+          score = 500 + row.totalStars;
         } else {
           // Safe placement — prefer rows with fewer existing cards
-          score = card.bulls + row.size * 10;
+          score = card.stars + row.size * 10;
         }
       }
       if (score < bestScore) {
@@ -49,10 +49,10 @@ class AiStrategy {
 
   static int chooseBestRow(List<GameRow> rows) {
     int bestIdx = 0;
-    int minBulls = rows[0].totalBulls;
+    int minStars = rows[0].totalStars;
     for (int i = 1; i < rows.length; i++) {
-      if (rows[i].totalBulls < minBulls) {
-        minBulls = rows[i].totalBulls;
+      if (rows[i].totalStars < minStars) {
+        minStars = rows[i].totalStars;
         bestIdx = i;
       }
     }

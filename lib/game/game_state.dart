@@ -58,9 +58,9 @@ class GameState extends ChangeNotifier {
   TakePlayer get human => players[0];
   List<TakePlayer> get aiPlayers => players.sublist(1);
 
-  List<TakePlayer> get sortedByBulls {
+  List<TakePlayer> get sortedByStars {
     final sorted = [...players];
-    sorted.sort((a, b) => a.totalBulls.compareTo(b.totalBulls));
+    sorted.sort((a, b) => a.totalStars.compareTo(b.totalStars));
     return sorted;
   }
 
@@ -234,14 +234,14 @@ class GameState extends ChangeNotifier {
   }
 
   /// Applies the pending [rowTake] (called by the UI when the pile lands on the
-  /// taker): credits the bulls, empties the row, and stages the new card's
+  /// taker): credits the stars, empties the row, and stages the new card's
   /// flight into the now-empty slot 0.
   void commitRowTake(int gen) {
     if (_disposed || gen != generation) return;
     final t = rowTake;
     if (t == null) return;
     rowTake = null;
-    t.player.totalBulls += rows[t.rowIdx].totalBulls;
+    t.player.totalStars += rows[t.rowIdx].totalStars;
     rows[t.rowIdx] = GameRow(const []); // emptied; new card flies in next
     lastAffectedRow = t.rowIdx;
     lastWasTake = true;

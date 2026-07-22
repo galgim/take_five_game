@@ -1,12 +1,12 @@
 class TakeCard {
   final int number;
-  final int bulls;
+  final int stars;
 
-  const TakeCard({required this.number, required this.bulls});
+  const TakeCard({required this.number, required this.stars});
 
-  factory TakeCard.fromNumber(int n) => TakeCard(number: n, bulls: _bullsFor(n));
+  factory TakeCard.fromNumber(int n) => TakeCard(number: n, stars: _starsFor(n));
 
-  static int _bullsFor(int n) {
+  static int _starsFor(int n) {
     if (n == 55) return 7;
     if (n % 11 == 0) return 5;
     if (n % 10 == 0) return 3;

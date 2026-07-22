@@ -5,7 +5,7 @@ import '../models/take_card.dart';
 import '../models/game_row.dart';
 import '../models/take_player.dart';
 import '../widgets/app_button.dart';
-import '../widgets/fish_card_design.dart';
+import '../widgets/star_card_design.dart';
 import 'menu_screen.dart';
 
 class GameScreen extends StatefulWidget {
@@ -277,7 +277,7 @@ class _GameScreenState extends State<GameScreen> {
           ),
           if (_gs.gameOver)
             _GameOverOverlay(
-              players: _gs.sortedByBulls,
+              players: _gs.sortedByStars,
               onPlayAgain: () => _gs.reset(widget.playerCount, widget.playerName),
               onMenu: () {
                 if (Navigator.canPop(context)) {
@@ -356,7 +356,7 @@ class _PlayerSidebarRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final selected = player.selectedCard;
     // Any accrued penalty shows red; only a clean 0 keeps the normal color.
-    final scoreColor = player.totalBulls > 0
+    final scoreColor = player.totalStars > 0
         ? Colors.redAccent
         : (player.isHuman ? const Color(0xFFFFC107) : Colors.white54);
 
@@ -397,7 +397,7 @@ class _PlayerSidebarRow extends StatelessWidget {
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
-                      child: Text('${player.totalBulls}'),
+                      child: Text('${player.totalStars}'),
                     ),
                     const SizedBox(width: 3),
                     SvgPicture.asset(
@@ -460,7 +460,7 @@ class _TableGrid extends StatelessWidget {
       onTap: choosingRow ? () => onPickRow(i) : null,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          const bullsW = 30.0;
+          const starsW = 30.0;
           const hPad = 8.0;
           const cardGap = 1.5;
           const vPad = 6.0;
@@ -468,7 +468,7 @@ class _TableGrid extends StatelessWidget {
           const safetyMargin = 6.0;
           const maxCardW = 50.0;
 
-          final overhead = bullsW + hPad + cardGap * 4 + safetyMargin;
+          final overhead = starsW + hPad + cardGap * 4 + safetyMargin;
           final maxCardWByWidth = (constraints.maxWidth - overhead) / 5;
           final maxCardHByHeight = constraints.maxHeight - vPad;
           final maxCardWByHeight = maxCardHByHeight * aspect;
@@ -615,7 +615,7 @@ class _GameRowWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Text(
-                  '${row.totalBulls}',
+                  '${row.totalStars}',
                   style: TextStyle(
                     color: row.isFull
                         ? Colors.redAccent
@@ -800,7 +800,7 @@ class TakeCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = tierFor(card.bulls).numberColor;
+    final textColor = tierFor(card.stars).numberColor;
     final dimColor = dimmed ? Colors.black.withValues(alpha: 0.35) : Colors.transparent;
 
     return Stack(
@@ -826,7 +826,7 @@ class TakeCardWidget extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(6),
                   child: SvgPicture.asset(
-                    'assets/Card ${card.bulls}.svg',
+                    'assets/Card ${card.stars}.svg',
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -1080,7 +1080,7 @@ class _GameOverOverlay extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '${p.totalBulls} fish',
+                          '${p.totalStars} stars',
                           style: TextStyle(
                             fontSize: 13,
                             color: rank == 1 ? const Color(0xFFE65100) : Colors.black54,
